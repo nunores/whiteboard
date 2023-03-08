@@ -295,12 +295,12 @@ const whiteboard = {
             console.log("Mouseup");
             console.log("TEMPSet: " + [..._this.tempSet]);
 
-            _this.strokesSet.add(_this.tempSet);
+            _this.strokesSet.add(new Set(_this.tempSet));
 
             // Print strokesSet
 
             for (const set of _this.strokesSet) {
-                console.log("{ ");
+                console.log("Strokes set: { ");
                 for (let element of set) {
                     console.log(element + " ");
                 }
