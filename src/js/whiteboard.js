@@ -55,6 +55,8 @@ const whiteboard = {
         backgroundGridUrl: "./images/gb_grid.png",
     },
     lastPointerSentTime: 0,
+    tempSet: new Set(),
+    strokesSet: new Set(),
     /**
      * @type Point
      */
@@ -144,6 +146,33 @@ const whiteboard = {
             const currentPos = Point.fromEvent(e);
 
             if (_this.tool === "pen") {
+                console.log("MOUSEDOWN");
+                console.log("X: ", currentPos.x);
+                console.log("Y: ", currentPos.y);
+                _this.tempSet.clear();
+                _this.tempSet.add(currentPos.x);
+                _this.tempSet.add(currentPos.y);
+
+                const axios = require("axios");
+
+                // axios
+                //     .get("http://localhost:4000/seshat")
+                //     .then((response) => {
+                //         console.log("Response: ", response.data);
+                //     })
+                //     .catch((error) => {
+                //         console.error("Error: ", error);
+                //     });
+
+                axios
+                    .post("http://localhost:4000/seshat", "abc")
+                    .then((response) => {
+                        console.log("Response:", response.data);
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                    });
+
                 _this.penSmoothLastCoords = [
                     currentPos.x,
                     currentPos.y,
@@ -263,6 +292,28 @@ const whiteboard = {
         });
 
         _this.mouseup = function (e) {
+            console.log("Mouseup");
+            console.log("TEMPSet: " + [..._this.tempSet]);
+
+            _this.strokesSet.add(_this.tempSet);
+
+            // Print strokesSet
+
+            for (const set of _this.strokesSet) {
+                console.log("{ ");
+                for (let element of set) {
+                    console.log(element + " ");
+                }
+                console.log("}");
+            }
+
+            _this.tempSet.clear();
+
+            // Generate the InkML file
+            //const inkmlString = generateInkMLFile([..._this.strokesSet]);
+
+            //console.log("FILE: " + inkmlString + "\n");
+
             if (_this.imgDragActive) {
                 return;
             }
@@ -714,6 +765,7 @@ const whiteboard = {
         }
         _this.penSmoothLastCoords.push(X, Y);
         if (_this.penSmoothLastCoords.length >= 8) {
+            console.log("Movement");
             _this.drawPenSmoothLine(_this.penSmoothLastCoords, _this.drawcolor, _this.thickness);
             let sendArray = [];
             for (let i = 0; i < _this.penSmoothLastCoords.length; i++) {
@@ -789,6 +841,10 @@ const whiteboard = {
         var y1 = coords[5];
         var x2 = coords[6];
         var y2 = coords[7];
+        console.log("X0: ", x0);
+        console.log("Y0: ", y0);
+        _this.tempSet.add(x0);
+        _this.tempSet.add(y0);
         var length = Math.sqrt(Math.pow(x0 - x1, 2) + Math.pow(y0 - y1, 2));
         var steps = Math.ceil(length / 5);
         _this.ctx.beginPath();
@@ -1690,6 +1746,40 @@ function testImage(url, callback, timeout) {
         img.src = "//!!!!/test.jpg";
         callback(false);
     }, timeout);
+}
+
+// Returns a string that is the content of the file to be generated
+function generateInkMLFile(traces) {
+    const inkmlHeader = `
+    <ink xmlns="http://www.w3.org/2003/InkML">`;
+
+    const inkmlFooter = `</ink>`;
+
+    // Define the InkML trace template
+    const traceTemplate = `
+    
+    <trace id="trace_%TRACE_ID%">
+        %TRACE_DATA%
+    </trace>`;
+
+    // Generate the InkML trace elements
+    let traceElements = "";
+    for (let i = 0; i < traces.length; i++) {
+        const traceId = i + 1;
+
+        const points = Array.map((point) => point.join(",")).join(" ");
+        console.log(points);
+
+        const inkmlTrace = traceTemplate
+            .replace("%TRACE_ID%", traceId)
+            .replace("%TRACE_DATA%", traceData);
+        traceElements += inkmlTrace;
+    }
+
+    // Combine the InkML header, trace elements, and footer to create the final InkML file
+    const inkmlFile = inkmlHeader + traceElements + inkmlFooter;
+
+    return inkmlFile;
 }
 
 export default whiteboard;
