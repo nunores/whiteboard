@@ -146,12 +146,8 @@ const whiteboard = {
             const currentPos = Point.fromEvent(e);
 
             if (_this.tool === "pen") {
-                console.log("MOUSEDOWN");
-                console.log("X: ", currentPos.x);
-                console.log("Y: ", currentPos.y);
                 _this.tempSet.clear();
-                _this.tempSet.add(currentPos.x);
-                _this.tempSet.add(currentPos.y);
+                _this.tempSet.add([currentPos.x, currentPos.y]);
 
                 const axios = require("axios");
 
@@ -163,15 +159,6 @@ const whiteboard = {
                 //     .catch((error) => {
                 //         console.error("Error: ", error);
                 //     });
-
-                axios
-                    .post("http://localhost:4000/seshat", "abc")
-                    .then((response) => {
-                        console.log("Response:", response.data);
-                    })
-                    .catch((error) => {
-                        console.error("Error:", error);
-                    });
 
                 _this.penSmoothLastCoords = [
                     currentPos.x,
@@ -292,27 +279,23 @@ const whiteboard = {
         });
 
         _this.mouseup = function (e) {
-            console.log("Mouseup");
-            console.log("TEMPSet: " + [..._this.tempSet]);
-
             _this.strokesSet.add(new Set(_this.tempSet));
-
-            // Print strokesSet
-
-            for (const set of _this.strokesSet) {
-                console.log("Strokes set: { ");
-                for (let element of set) {
-                    console.log(element + " ");
-                }
-                console.log("}");
-            }
-
             _this.tempSet.clear();
 
-            // Generate the InkML file
-            //const inkmlString = generateInkMLFile([..._this.strokesSet]);
+            // Generate the InkML string
+            const inkmlString = generateInkMLString(_this.strokesSet);
 
-            //console.log("FILE: " + inkmlString + "\n");
+            const axios = require("axios");
+
+            // Send this string to the server
+            axios
+                .post("http://localhost:4000/seshat", inkmlString)
+                .then((response) => {
+                    console.log("Response:", response.data);
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
 
             if (_this.imgDragActive) {
                 return;
@@ -765,7 +748,6 @@ const whiteboard = {
         }
         _this.penSmoothLastCoords.push(X, Y);
         if (_this.penSmoothLastCoords.length >= 8) {
-            console.log("Movement");
             _this.drawPenSmoothLine(_this.penSmoothLastCoords, _this.drawcolor, _this.thickness);
             let sendArray = [];
             for (let i = 0; i < _this.penSmoothLastCoords.length; i++) {
@@ -841,10 +823,7 @@ const whiteboard = {
         var y1 = coords[5];
         var x2 = coords[6];
         var y2 = coords[7];
-        console.log("X0: ", x0);
-        console.log("Y0: ", y0);
-        _this.tempSet.add(x0);
-        _this.tempSet.add(y0);
+        _this.tempSet.add([xm1, ym1]);
         var length = Math.sqrt(Math.pow(x0 - x1, 2) + Math.pow(y0 - y1, 2));
         var steps = Math.ceil(length / 5);
         _this.ctx.beginPath();
@@ -1749,7 +1728,7 @@ function testImage(url, callback, timeout) {
 }
 
 // Returns a string that is the content of the file to be generated
-function generateInkMLFile(traces) {
+function generateInkMLString(traces) {
     const inkmlHeader = `
     <ink xmlns="http://www.w3.org/2003/InkML">`;
 
@@ -1762,18 +1741,26 @@ function generateInkMLFile(traces) {
         %TRACE_DATA%
     </trace>`;
 
-    // Generate the InkML trace elements
-    let traceElements = "";
-    for (let i = 0; i < traces.length; i++) {
-        const traceId = i + 1;
+    let id = 1;
 
-        const points = Array.map((point) => point.join(",")).join(" ");
-        console.log(points);
+    let traceElements = "";
+
+    for (const trace of traces) {
+        let traceData = "";
+
+        for (const points of trace) {
+            const xCoord = points[0];
+            const yCoord = points[1];
+
+            traceData += `${xCoord} ${yCoord}, `;
+        }
 
         const inkmlTrace = traceTemplate
-            .replace("%TRACE_ID%", traceId)
+            .replace("%TRACE_ID%", id)
             .replace("%TRACE_DATA%", traceData);
         traceElements += inkmlTrace;
+
+        id++;
     }
 
     // Combine the InkML header, trace elements, and footer to create the final InkML file
