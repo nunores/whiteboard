@@ -151,15 +151,6 @@ const whiteboard = {
 
                 const axios = require("axios");
 
-                // axios
-                //     .get("http://localhost:4000/seshat")
-                //     .then((response) => {
-                //         console.log("Response: ", response.data);
-                //     })
-                //     .catch((error) => {
-                //         console.error("Error: ", error);
-                //     });
-
                 _this.penSmoothLastCoords = [
                     currentPos.x,
                     currentPos.y,
@@ -285,17 +276,25 @@ const whiteboard = {
             // Generate the InkML string
             const inkmlString = generateInkMLString(_this.strokesSet);
 
+            console.log("STRING: ", inkmlString);
+
             const axios = require("axios");
 
             // Send this string to the server
             axios
-                .post("http://localhost:4000/seshat", inkmlString)
+                .post("http://localhost:4000/seshat", inkmlString, {
+                    headers: {
+                        "Content-Type": "text/plain",
+                    },
+                })
                 .then((response) => {
                     console.log("Response:", response.data);
                 })
                 .catch((error) => {
                     console.error("Error:", error);
                 });
+
+            console.log(getRecognition());
 
             if (_this.imgDragActive) {
                 return;
@@ -1767,6 +1766,23 @@ function generateInkMLString(traces) {
     const inkmlFile = inkmlHeader + traceElements + inkmlFooter;
 
     return inkmlFile;
+}
+
+function getRecognition() {
+    const axios = require("axios");
+    let res = "";
+
+    axios
+        .get("http://localhost:4000/seshat")
+        .then((response) => {
+            console.log("Response: ", response.data);
+            res = response.data;
+        })
+        .catch((error) => {
+            console.error("Error: ", error);
+        });
+
+    return res;
 }
 
 export default whiteboard;
