@@ -288,13 +288,26 @@ const whiteboard = {
                     },
                 })
                 .then((response) => {
-                    console.log("Response:", response.data);
+                    console.log("POSTING... ", response.data);
                 })
                 .catch((error) => {
-                    console.error("Error:", error);
+                    console.error("Error from posting:", error);
                 });
 
-            console.log(getRecognition());
+            getRecognition()
+                .then((responseData) => {
+                    console.log("Recognition:", responseData);
+                    InfoService.recognitionResult = responseData;
+                })
+                .catch((error) => {
+                    // handle any errors that may have occurred during the request
+                    console.error("Error from recognition:", error);
+                });
+
+            console.log("HERE");
+            //console.log(getRecognition());
+            //console.log("RESULT: ", result);
+            //InfoService.recognitionResult = result;
 
             if (_this.imgDragActive) {
                 return;
@@ -1768,21 +1781,16 @@ function generateInkMLString(traces) {
     return inkmlFile;
 }
 
-function getRecognition() {
+// Makes a get request and returns the recognition of what is written
+async function getRecognition() {
     const axios = require("axios");
-    let res = "";
 
-    axios
-        .get("http://localhost:4000/seshat")
-        .then((response) => {
-            console.log("Response: ", response.data);
-            res = response.data;
-        })
-        .catch((error) => {
-            console.error("Error: ", error);
-        });
-
-    return res;
+    try {
+        const response = await axios.get("http://localhost:4000/seshat");
+        return response.data;
+    } catch (error) {
+        console.error("Error in getRecognition: ", error);
+    }
 }
 
 export default whiteboard;

@@ -56,6 +56,18 @@ class InfoService {
     }
 
     /**
+     * Holds the recognition result as a string
+     * @type {string}
+     */
+    #recognitionResult = "";
+    get recognitionResult() {
+        return this.#recognitionResult;
+    }
+    set recognitionResult(updatedRecognition) {
+        this.#recognitionResult = updatedRecognition;
+    }
+
+    /**
      * @param {number} nbConnectedUsers
      * @param {{w: number, h: number}} smallestScreenResolution
      */
@@ -84,11 +96,13 @@ class InfoService {
             nbMessagesSent,
             nbConnectedUsers,
             smallestScreenResolution: ssr,
+            recognitionResult,
         } = this;
         $("#messageReceivedCount")[0].innerText = String(nbMessagesReceived);
         $("#messageSentCount")[0].innerText = String(nbMessagesSent);
         $("#connectedUsersCount")[0].innerText = String(nbConnectedUsers);
         $("#smallestScreenResolution")[0].innerText = ssr ? `(${ssr.w}, ${ssr.h})` : "Unknown";
+        $("#recognitionResult")[0].innerText = String(recognitionResult);
     }
 
     /**
