@@ -904,6 +904,8 @@ const whiteboard = {
         _this.drawBuffer = [];
         _this.undoBuffer = [];
         _this.drawId = 0;
+        _this.tempSet.clear();
+        _this.strokesSet.clear();
     },
     setStrokeThickness(thickness) {
         var _this = this;
