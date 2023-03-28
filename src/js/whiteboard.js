@@ -1334,39 +1334,42 @@ const whiteboard = {
     calculateStrokesArray: function () {
         let _this = this;
 
+        console.log("DRAWBUFFER: ", _this.drawBuffer);
+
         _this.strokesArray = [];
 
-        let tempDrawId = 0;
+        let tempDrawId = _this.drawBuffer["drawId"];
         let tempSet = new Set();
         let tempArray = [];
 
-        _this.drawBuffer.forEach((element) => {
-            let arrayStrokes = element["d"];
-            if (tempDrawId !== element["drawId"]) {
-                tempSet.forEach((coordinates) => {
-                    const numbers = coordinates.split(",").map(Number);
-                    tempArray.push(...numbers);
-                });
-                _this.strokesArray.push(tempArray);
-                tempSet = new Set();
-                tempArray = [];
-                tempDrawId++;
-            } else {
-                for (let index = 0; index < arrayStrokes.length; index += 2) {
-                    const x = arrayStrokes[index];
-                    const y = arrayStrokes[index + 1];
-                    tempSet.add([x, y].join(","));
+        if (_this.drawBuffer.length !== 0) {
+            _this.drawBuffer.forEach((element) => {
+                let arrayStrokes = element["d"];
+                if (tempDrawId !== element["drawId"]) {
+                    tempSet.forEach((coordinates) => {
+                        const numbers = coordinates.split(",").map(Number);
+                        tempArray.push(...numbers);
+                    });
+                    _this.strokesArray.push(tempArray);
+                    tempSet = new Set();
+                    tempArray = [];
+                    tempDrawId = element["drawId"];
+                } else {
+                    for (let index = 0; index < arrayStrokes.length; index += 2) {
+                        const x = arrayStrokes[index];
+                        const y = arrayStrokes[index + 1];
+                        tempSet.add([x, y].join(","));
+                    }
                 }
-            }
-        });
+            });
 
-        tempSet.forEach((coordinates) => {
-            const numbers = coordinates.split(",").map(Number);
-            tempArray.push(...numbers);
-        });
+            tempSet.forEach((coordinates) => {
+                const numbers = coordinates.split(",").map(Number);
+                tempArray.push(...numbers);
+            });
 
-        _this.strokesArray.push(tempArray);
-
+            _this.strokesArray.push(tempArray);
+        }
         console.log("STROKESARRAY: ", _this.strokesArray);
     },
     handleEventsAndData: function (content, isNewData, doneCallback) {
@@ -1734,20 +1737,25 @@ const whiteboard = {
     },
     refreshRecognition() {
         let _this = this;
-        // Generate the InkML string
-        const inkmlString = _this.generateInkMLString(_this.strokesArray);
 
-        console.log("STRING: ", inkmlString);
+        if (_this.strokesArray.length === 0) {
+            InfoService.recognitionResult = "";
+        } else {
+            // Generate the InkML string
+            const inkmlString = _this.generateInkMLString(_this.strokesArray);
 
-        getRecognition(inkmlString)
-            .then((responseData) => {
-                console.log("Recognition:", responseData);
-                InfoService.recognitionResult = responseData;
-            })
-            .catch((error) => {
-                // handle any errors that may have occurred during the request
-                console.error("Error from recognition: ", error);
-            });
+            console.log("STRING: ", inkmlString);
+
+            getRecognition(inkmlString)
+                .then((responseData) => {
+                    console.log("Recognition:", responseData);
+                    InfoService.recognitionResult = responseData;
+                })
+                .catch((error) => {
+                    // handle any errors that may have occurred during the request
+                    console.error("Error from recognition: ", error);
+                });
+        }
     },
 };
 
