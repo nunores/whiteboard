@@ -55,8 +55,7 @@ const whiteboard = {
         backgroundGridUrl: "./images/gb_grid.png",
     },
     lastPointerSentTime: 0,
-    tempSet: new Set(),
-    strokesSet: new Set(),
+    strokesArray: [],
     /**
      * @type Point
      */
@@ -146,11 +145,6 @@ const whiteboard = {
             const currentPos = Point.fromEvent(e);
 
             if (_this.tool === "pen") {
-                _this.tempSet.clear();
-                _this.tempSet.add([currentPos.x, currentPos.y]);
-
-                const axios = require("axios");
-
                 _this.penSmoothLastCoords = [
                     currentPos.x,
                     currentPos.y,
@@ -270,45 +264,6 @@ const whiteboard = {
         });
 
         _this.mouseup = function (e) {
-            _this.strokesSet.add(new Set(_this.tempSet));
-            _this.tempSet.clear();
-
-            // Generate the InkML string
-            const inkmlString = generateInkMLString(_this.strokesSet);
-
-            console.log("STRING: ", inkmlString);
-
-            const axios = require("axios");
-
-            // Send this string to the server
-            axios
-                .post("http://localhost:4000/seshat", inkmlString, {
-                    headers: {
-                        "Content-Type": "text/plain",
-                    },
-                })
-                .then((response) => {
-                    console.log("POSTING... ", response.data);
-                })
-                .catch((error) => {
-                    console.error("Error from posting:", error);
-                });
-
-            getRecognition()
-                .then((responseData) => {
-                    console.log("Recognition:", responseData);
-                    InfoService.recognitionResult = responseData;
-                })
-                .catch((error) => {
-                    // handle any errors that may have occurred during the request
-                    console.error("Error from recognition:", error);
-                });
-
-            console.log("HERE");
-            //console.log(getRecognition());
-            //console.log("RESULT: ", result);
-            //InfoService.recognitionResult = result;
-
             if (_this.imgDragActive) {
                 return;
             }
@@ -503,6 +458,9 @@ const whiteboard = {
                 _this.svgContainer.find("rect").remove();
             }
             _this.drawId++;
+
+            _this.calculateStrokesArray();
+            _this.refreshRecognition();
         };
 
         _this.mouseOverlay.on("mouseout", function (e) {
@@ -835,7 +793,6 @@ const whiteboard = {
         var y1 = coords[5];
         var x2 = coords[6];
         var y2 = coords[7];
-        _this.tempSet.add([xm1, ym1]);
         var length = Math.sqrt(Math.pow(x0 - x1, 2) + Math.pow(y0 - y1, 2));
         var steps = Math.ceil(length / 5);
         _this.ctx.beginPath();
@@ -904,8 +861,8 @@ const whiteboard = {
         _this.drawBuffer = [];
         _this.undoBuffer = [];
         _this.drawId = 0;
-        _this.tempSet.clear();
-        _this.strokesSet.clear();
+        _this.calculateStrokesArray();
+        _this.refreshRecognition();
     },
     setStrokeThickness(thickness) {
         var _this = this;
@@ -1271,6 +1228,8 @@ const whiteboard = {
         _this.loadDataInSteps(_this.drawBuffer, false, function (stepData) {
             //Nothing to do
         });
+        _this.calculateStrokesArray();
+        _this.refreshRecognition();
     },
     redoWhiteboard: function (username) {
         //Not call this directly because you will get out of sync whith others...
@@ -1298,6 +1257,8 @@ const whiteboard = {
         _this.loadDataInSteps(_this.drawBuffer, false, function (stepData) {
             //Nothing to do
         });
+        _this.calculateStrokesArray();
+        _this.refreshRecognition();
     },
     undoWhiteboardClick: function () {
         if (ReadOnlyService.readOnlyActive) return;
@@ -1369,6 +1330,44 @@ const whiteboard = {
                 );
             }
         }
+    },
+    calculateStrokesArray: function () {
+        let _this = this;
+
+        _this.strokesArray = [];
+
+        let tempDrawId = 0;
+        let tempSet = new Set();
+        let tempArray = [];
+
+        _this.drawBuffer.forEach((element) => {
+            let arrayStrokes = element["d"];
+            if (tempDrawId !== element["drawId"]) {
+                tempSet.forEach((coordinates) => {
+                    const numbers = coordinates.split(",").map(Number);
+                    tempArray.push(...numbers);
+                });
+                _this.strokesArray.push(tempArray);
+                tempSet = new Set();
+                tempArray = [];
+                tempDrawId++;
+            } else {
+                for (let index = 0; index < arrayStrokes.length; index += 2) {
+                    const x = arrayStrokes[index];
+                    const y = arrayStrokes[index + 1];
+                    tempSet.add([x, y].join(","));
+                }
+            }
+        });
+
+        tempSet.forEach((coordinates) => {
+            const numbers = coordinates.split(",").map(Number);
+            tempArray.push(...numbers);
+        });
+
+        _this.strokesArray.push(tempArray);
+
+        console.log("STROKESARRAY: ", _this.strokesArray);
     },
     handleEventsAndData: function (content, isNewData, doneCallback) {
         var _this = this;
@@ -1692,6 +1691,64 @@ const whiteboard = {
             _this.mouseOverlay.css({ cursor: "crosshair" });
         }
     },
+    generateInkMLString(traces) {
+        const inkmlHeader = `
+        <ink xmlns="http://www.w3.org/2003/InkML">`;
+
+        const inkmlFooter = `</ink>`;
+
+        // Define the InkML trace template
+        const traceTemplate = `
+        
+        <trace id="trace_%TRACE_ID%">
+            %TRACE_DATA%
+        </trace>`;
+
+        let id = 1;
+
+        let traceElements = "";
+
+        console.log("TRACES: ", traces);
+
+        traces.forEach((trace) => {
+            let traceData = "";
+
+            for (let index = 0; index < trace.length; index += 2) {
+                const xCoord = trace[index];
+                const yCoord = trace[index + 1];
+                traceData += `${xCoord} ${yCoord}, `;
+            }
+
+            const inkmlTrace = traceTemplate
+                .replace("%TRACE_ID%", id)
+                .replace("%TRACE_DATA%", traceData);
+            traceElements += inkmlTrace;
+
+            id++;
+        });
+
+        // Combine the InkML header, trace elements, and footer to create the final InkML file
+        const inkmlFile = inkmlHeader + traceElements + inkmlFooter;
+
+        return inkmlFile;
+    },
+    refreshRecognition() {
+        let _this = this;
+        // Generate the InkML string
+        const inkmlString = _this.generateInkMLString(_this.strokesArray);
+
+        console.log("STRING: ", inkmlString);
+
+        getRecognition(inkmlString)
+            .then((responseData) => {
+                console.log("Recognition:", responseData);
+                InfoService.recognitionResult = responseData;
+            })
+            .catch((error) => {
+                // handle any errors that may have occurred during the request
+                console.error("Error from recognition: ", error);
+            });
+    },
 };
 
 function lanczosKernel(x) {
@@ -1741,51 +1798,23 @@ function testImage(url, callback, timeout) {
     }, timeout);
 }
 
-// Returns a string that is the content of the file to be generated
-function generateInkMLString(traces) {
-    const inkmlHeader = `
-    <ink xmlns="http://www.w3.org/2003/InkML">`;
-
-    const inkmlFooter = `</ink>`;
-
-    // Define the InkML trace template
-    const traceTemplate = `
-    
-    <trace id="trace_%TRACE_ID%">
-        %TRACE_DATA%
-    </trace>`;
-
-    let id = 1;
-
-    let traceElements = "";
-
-    for (const trace of traces) {
-        let traceData = "";
-
-        for (const points of trace) {
-            const xCoord = points[0];
-            const yCoord = points[1];
-
-            traceData += `${xCoord} ${yCoord}, `;
-        }
-
-        const inkmlTrace = traceTemplate
-            .replace("%TRACE_ID%", id)
-            .replace("%TRACE_DATA%", traceData);
-        traceElements += inkmlTrace;
-
-        id++;
-    }
-
-    // Combine the InkML header, trace elements, and footer to create the final InkML file
-    const inkmlFile = inkmlHeader + traceElements + inkmlFooter;
-
-    return inkmlFile;
-}
-
 // Makes a get request and returns the recognition of what is written
-async function getRecognition() {
+async function getRecognition(inkmlString) {
     const axios = require("axios");
+
+    try {
+        await axios
+            .post("http://localhost:4000/seshat", inkmlString, {
+                headers: {
+                    "Content-Type": "text/plain",
+                },
+            })
+            .then((response) => {
+                console.log("POSTING... ", response.data);
+            });
+    } catch (error) {
+        console.error("Error from posting: ", error);
+    }
 
     try {
         const response = await axios.get("http://localhost:4000/seshat");
