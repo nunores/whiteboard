@@ -1332,17 +1332,17 @@ const whiteboard = {
         }
     },
     calculateStrokesArray: function () {
+        // If drawBuffer is empty, show empty in result and skip this whole function
         let _this = this;
-
-        console.log("DRAWBUFFER: ", _this.drawBuffer);
-
         _this.strokesArray = [];
 
-        let tempDrawId = _this.drawBuffer["drawId"];
-        let tempSet = new Set();
-        let tempArray = [];
-
         if (_this.drawBuffer.length !== 0) {
+            console.log("DRAWBUFFER: ", _this.drawBuffer);
+
+            let tempDrawId = _this.drawBuffer[0]["drawId"];
+            let tempSet = new Set();
+            let tempArray = [];
+
             _this.drawBuffer.forEach((element) => {
                 let arrayStrokes = element["d"];
                 if (tempDrawId !== element["drawId"]) {
@@ -1350,10 +1350,18 @@ const whiteboard = {
                         const numbers = coordinates.split(",").map(Number);
                         tempArray.push(...numbers);
                     });
+
                     _this.strokesArray.push(tempArray);
+
                     tempSet = new Set();
                     tempArray = [];
                     tempDrawId = element["drawId"];
+
+                    for (let index = 0; index < arrayStrokes.length; index += 2) {
+                        const x = arrayStrokes[index];
+                        const y = arrayStrokes[index + 1];
+                        tempSet.add([x, y].join(","));
+                    }
                 } else {
                     for (let index = 0; index < arrayStrokes.length; index += 2) {
                         const x = arrayStrokes[index];
@@ -1369,8 +1377,9 @@ const whiteboard = {
             });
 
             _this.strokesArray.push(tempArray);
+
+            console.log("STROKESARRAY: ", _this.strokesArray);
         }
-        console.log("STROKESARRAY: ", _this.strokesArray);
     },
     handleEventsAndData: function (content, isNewData, doneCallback) {
         var _this = this;
@@ -1739,6 +1748,7 @@ const whiteboard = {
         let _this = this;
 
         if (_this.strokesArray.length === 0) {
+            console.log("Found empty");
             InfoService.recognitionResult = "";
         } else {
             // Generate the InkML string
