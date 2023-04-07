@@ -56,6 +56,7 @@ const whiteboard = {
     },
     lastPointerSentTime: 0,
     strokesArray: [],
+    timeoutId: null,
     /**
      * @type Point
      */
@@ -459,8 +460,13 @@ const whiteboard = {
             }
             _this.drawId++;
 
-            _this.calculateStrokesArray();
-            _this.refreshRecognition();
+            clearTimeout(_this.timeoutId);
+
+            // Timeout to prevent too many calls
+            _this.timeoutId = setTimeout(() => {
+                _this.calculateStrokesArray();
+                _this.refreshRecognition();
+            }, 800);
         };
 
         _this.mouseOverlay.on("mouseout", function (e) {
