@@ -308,6 +308,15 @@ const whiteboard = {
                 _this.svgContainer.find("line").remove();
             } else if (_this.tool === "pen") {
                 _this.pushPointSmoothPen(currentPos.x, currentPos.y);
+
+                clearTimeout(_this.timeoutId);
+
+                // Timeout to prevent too many calls
+                _this.timeoutId = setTimeout(() => {
+                    _this.verify;
+                    _this.calculateStrokesArray();
+                    _this.refreshRecognition();
+                }, 800);
             } else if (_this.tool === "rect") {
                 if (_this.pressedKeys.shift) {
                     if (
@@ -459,14 +468,6 @@ const whiteboard = {
                 _this.svgContainer.find("rect").remove();
             }
             _this.drawId++;
-
-            clearTimeout(_this.timeoutId);
-
-            // Timeout to prevent too many calls
-            _this.timeoutId = setTimeout(() => {
-                _this.calculateStrokesArray();
-                _this.refreshRecognition();
-            }, 800);
         };
 
         _this.mouseOverlay.on("mouseout", function (e) {
