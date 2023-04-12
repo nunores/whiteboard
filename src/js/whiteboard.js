@@ -1823,7 +1823,12 @@ function testImage(url, callback, timeout) {
     }, timeout);
 }
 
-// Makes a get request and returns the recognition of what is written
+/**
+ * An asynchronous function that sends an inkml string to a server and retrieves recognition data based on that inkml.
+ * @param {string} inkmlString - A string of inkml data to send to the server for recognition.
+ * @returns {Promise<Object>} A promise that resolves to the recognition data received from the server, or rejects with an error if there was an issue with either the POST or GET requests.
+ * @throws {Error} If there was an issue with either the POST or GET requests.
+ */
 async function getRecognition(inkmlString) {
     const axios = require("axios");
 
