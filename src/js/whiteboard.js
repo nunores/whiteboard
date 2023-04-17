@@ -1831,24 +1831,24 @@ function testImage(url, callback, timeout) {
  */
 async function getRecognition(inkmlString) {
     const axios = require("axios");
-
     try {
-        await axios
-            .post("http://localhost:4000/seshat", inkmlString, {
-                headers: {
-                    "Content-Type": "text/plain",
+        let { data: postResponse } = await axios.post("http://localhost:4000/seshat", inkmlString, {
+            headers: {
+                "Content-Type": "text/plain",
+            },
+        });
+        console.log("POST Response: ", postResponse);
+
+        const { data: recognitionResult } = await axios.get(
+            "http://localhost:4000/seshat/multiple",
+            {
+                params: {
+                    lastWrittenNumbers: postResponse,
                 },
-            })
-            .then((response) => {
-                console.log("POSTING... ", response.data);
-            });
-    } catch (error) {
-        console.error("Error from posting: ", error);
-    }
+            }
+        );
 
-    try {
-        const response = await axios.get("http://localhost:4000/seshat");
-        return response.data;
+        return recognitionResult;
     } catch (error) {
         console.error("Error in getRecognition: ", error);
     }
