@@ -1338,11 +1338,12 @@ const whiteboard = {
             }
         }
     },
+    //Converts draw buffer data into arrays of x and y coordinates for each stroke and adds them to strokesArray
     calculateStrokesArray: function () {
-        // If drawBuffer is empty, show empty in result and skip this whole function
         let _this = this;
         _this.strokesArray = [];
 
+        // If drawBuffer is empty, show empty in result and skip this whole function
         if (_this.drawBuffer.length !== 0) {
             console.log("DRAWBUFFER: ", _this.drawBuffer);
 
@@ -1353,6 +1354,7 @@ const whiteboard = {
             _this.drawBuffer.forEach((element) => {
                 let arrayStrokes = element["d"];
                 if (tempDrawId !== element["drawId"]) {
+                    // New stroke
                     tempSet.forEach((coordinates) => {
                         const numbers = coordinates.split(",").map(Number);
                         tempArray.push(...numbers);
@@ -1757,8 +1759,12 @@ const whiteboard = {
         if (_this.strokesArray.length === 0) {
             InfoService.recognitionResult = "";
         } else {
-            // Generate the InkML string
-            const inkmlString = _this.generateInkMLString(_this.strokesArray);
+            // Convert all coordinates to positive space
+            const positiveStrokesArray = convertToPositive(_this.strokesArray);
+
+            console.log("POSITIVE: ", positiveStrokesArray);
+
+            const inkmlString = _this.generateInkMLString(positiveStrokesArray);
 
             console.log("STRING: ", inkmlString);
 
@@ -1849,6 +1855,41 @@ async function getRecognition(inkmlString) {
     } catch (error) {
         console.error("Error in getRecognition: ", error);
     }
+}
+
+/**
+Converts a given strokes array into positive coordinates.
+@param {Array} strokesArray - An array of strokes where each stroke is an array of coordinates.
+@returns {Array} An updated array of strokes where all coordinates have been shifted to be positive.
+*/
+function convertToPositive(strokesArray) {
+    let minX = Infinity;
+    let minY = Infinity;
+
+    for (let i = 0; i < strokesArray.length; i++) {
+        const stroke = strokesArray[i];
+
+        for (let j = 0; j < stroke.length; j += 2) {
+            const x = stroke[j];
+            const y = stroke[j + 1];
+
+            if (x < minX) {
+                minX = x;
+            }
+
+            if (y < minY) {
+                minY = y;
+            }
+        }
+    }
+
+    const positiveCoordinates = strokesArray.map((stroke) => {
+        return stroke.map((value, index) => {
+            return index % 2 === 0 ? value + Math.abs(minX) : value + Math.abs(minY);
+        });
+    });
+
+    return positiveCoordinates;
 }
 
 export default whiteboard;
