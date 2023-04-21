@@ -1755,7 +1755,6 @@ const whiteboard = {
         let _this = this;
 
         if (_this.strokesArray.length === 0) {
-            console.log("Found empty");
             InfoService.recognitionResult = "";
         } else {
             // Generate the InkML string
@@ -1765,7 +1764,6 @@ const whiteboard = {
 
             getRecognition(inkmlString)
                 .then((responseData) => {
-                    console.log("Recognition:", responseData);
                     InfoService.recognitionResult = responseData;
                 })
                 .catch((error) => {
@@ -1837,7 +1835,6 @@ async function getRecognition(inkmlString) {
                 "Content-Type": "text/plain",
             },
         });
-        console.log("POST Response: ", postResponse);
 
         const { data: recognitionResult } = await axios.get(
             "http://localhost:4000/seshat/multiple",
