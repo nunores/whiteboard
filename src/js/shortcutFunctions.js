@@ -47,6 +47,7 @@ const shortcutFunctions = {
     saveWhiteboardAsJson: defineShortcut(() => $("#saveAsJSONBtn").click(), false),
     uploadWhiteboardToWebDav: defineShortcut(() => $("#uploadWebDavBtn").click()),
     uploadJsonToWhiteboard: defineShortcut(() => $("#uploadJsonBtn").click()),
+    saveAsTex: defineShortcut(() => $("#saveAsLatexBtn").click(), false),
     shareWhiteboard: defineShortcut(() => $("#shareWhiteboardBtn").click(), false),
     hideShowControls: defineShortcut(() => $("#minMaxBtn").click(), false),
 

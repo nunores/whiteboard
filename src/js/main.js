@@ -500,6 +500,12 @@ function initWhiteboard() {
                 $("#myFile").click();
             });
 
+        $("#saveAsLatexBtn")
+            .off("click")
+            .click(() => {
+                whiteboard.downloadAsTex();
+            });
+
         $("#shareWhiteboardBtn")
             .off("click")
             .click(() => {

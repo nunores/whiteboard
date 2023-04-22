@@ -1778,6 +1778,25 @@ const whiteboard = {
                 });
         }
     },
+    downloadAsTex() {
+        let downloadContents = InfoService.recognitionResult.join("\n\n");
+
+        let w = window.open("about:blank"); //Firefox will not allow downloads without extra window
+        setTimeout(function () {
+            //FireFox seems to require a setTimeout for this to work.
+            let a = document.createElement("a");
+            a.href = window.URL.createObjectURL(
+                new Blob([downloadContents], { type: "application/x-latex" })
+            );
+            a.download = "latex.tex";
+            w.document.body.appendChild(a);
+            a.click();
+            w.document.body.removeChild(a);
+            setTimeout(function () {
+                w.close();
+            }, 100);
+        }, 0);
+    },
 };
 
 function lanczosKernel(x) {
