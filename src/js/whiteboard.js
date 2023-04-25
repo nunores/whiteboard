@@ -1758,6 +1758,7 @@ const whiteboard = {
 
         if (_this.strokesArray.length === 0) {
             InfoService.recognitionResult = "";
+            $("#texDisplay").html("");
         } else {
             // Convert all coordinates to positive space
             const positiveStrokesArray = convertToPositive(_this.strokesArray);
@@ -1771,15 +1772,29 @@ const whiteboard = {
             getRecognition(inkmlString)
                 .then((responseData) => {
                     InfoService.recognitionResult = responseData;
+                    let htmlStrings = [];
+                    const katex = require("katex");
+                    for (let i = 0; i < InfoService.recognitionResult.length; i++) {
+                        const latexString = InfoService.recognitionResult[i];
+                        htmlStrings.push(
+                            katex.renderToString(latexString, {
+                                displayMode: true,
+                                output: "mathml",
+                            })
+                        );
+                    }
+                    $("#texDisplay").html(htmlStrings);
                 })
                 .catch((error) => {
-                    // handle any errors that may have occurred during the request
                     console.error("Error from recognition: ", error);
                 });
         }
     },
     downloadAsTex() {
-        let downloadContents = InfoService.recognitionResult.join("\n\n");
+        let downloadContents = "";
+        if (InfoService.recognitionResult.length > 0) {
+            downloadContents = InfoService.recognitionResult.join("\n\n");
+        }
 
         let w = window.open("about:blank"); //Firefox will not allow downloads without extra window
         setTimeout(function () {

@@ -17,6 +17,21 @@ body {
     width: 100%;
 }
 
+#texDisplay {
+    position: absolute;
+    top: 3.5em;
+    right: 13em;
+}
+
+span.katex {
+    font-size: 2.5em;
+}
+
+span.katex > math {
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+}
+
 .btn-group button {
     background: transparent;
     border: 2px solid #636060;
