@@ -28,8 +28,7 @@ span.katex {
 }
 
 span.katex > math {
-    margin-top: 0.3em;
-    margin-bottom: 0.3em;
+    margin-bottom: 0.5em;
 }
 
 .btn-group button {
