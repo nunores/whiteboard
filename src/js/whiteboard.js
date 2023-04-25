@@ -1882,6 +1882,7 @@ function testImage(url, callback, timeout) {
  */
 async function getRecognition(inkmlString) {
     const axios = require("axios");
+    InfoService.recognitionResult = "Loading... ";
     try {
         let { data: postResponse } = await axios.post("http://localhost:4000/seshat", inkmlString, {
             headers: {
