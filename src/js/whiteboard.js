@@ -10,6 +10,7 @@ import DOMPurify from "dompurify";
 const RAD_TO_DEG = 180.0 / Math.PI;
 const DEG_TO_RAD = Math.PI / 180.0;
 const _45_DEG_IN_RAD = 45 * DEG_TO_RAD;
+const SESHAT_TIMEOUT = 1100; // in ms
 
 const whiteboard = {
     canvas: null,
@@ -313,10 +314,9 @@ const whiteboard = {
 
                 // Timeout to prevent too many calls
                 _this.timeoutId = setTimeout(() => {
-                    _this.verify;
                     _this.calculateStrokesArray();
                     _this.refreshRecognition();
-                }, 800);
+                }, SESHAT_TIMEOUT);
             } else if (_this.tool === "rect") {
                 if (_this.pressedKeys.shift) {
                     if (
@@ -868,6 +868,7 @@ const whiteboard = {
         _this.drawBuffer = [];
         _this.undoBuffer = [];
         _this.drawId = 0;
+
         _this.calculateStrokesArray();
         _this.refreshRecognition();
     },
@@ -1235,8 +1236,14 @@ const whiteboard = {
         _this.loadDataInSteps(_this.drawBuffer, false, function (stepData) {
             //Nothing to do
         });
-        _this.calculateStrokesArray();
-        _this.refreshRecognition();
+
+        clearTimeout(_this.timeoutId);
+
+        // Timeout to prevent too many calls
+        _this.timeoutId = setTimeout(() => {
+            _this.calculateStrokesArray();
+            _this.refreshRecognition();
+        }, SESHAT_TIMEOUT);
     },
     redoWhiteboard: function (username) {
         //Not call this directly because you will get out of sync whith others...
@@ -1264,8 +1271,14 @@ const whiteboard = {
         _this.loadDataInSteps(_this.drawBuffer, false, function (stepData) {
             //Nothing to do
         });
-        _this.calculateStrokesArray();
-        _this.refreshRecognition();
+
+        clearTimeout(_this.timeoutId);
+
+        // Timeout to prevent too many calls
+        _this.timeoutId = setTimeout(() => {
+            _this.calculateStrokesArray();
+            _this.refreshRecognition();
+        }, SESHAT_TIMEOUT);
     },
     undoWhiteboardClick: function () {
         if (ReadOnlyService.readOnlyActive) return;
