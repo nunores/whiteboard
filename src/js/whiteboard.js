@@ -1825,6 +1825,16 @@ const whiteboard = {
             }, 100);
         }, 0);
     },
+    // calculateThicknessMedian() {
+    //     const sortedDrawBuffer = this.drawBuffer.sort((a, b) => parseFloat(a.th) - parseFloat(b.th));
+    //     const mid = Math.floor(sortedDrawBuffer.length / 2);
+
+    //     if (sortedDrawBuffer.length % 2 === 0) {
+    //       return (parseFloat(sortedDrawBuffer[mid - 1].th) + parseFloat(sortedDrawBuffer[mid].th)) / 2;
+    //     } else {
+    //       return parseFloat(sortedDrawBuffer[mid].th);
+    //     }
+    // }
 };
 
 function lanczosKernel(x) {
