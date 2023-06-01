@@ -1782,6 +1782,8 @@ const whiteboard = {
 
             console.log("STRING: ", inkmlString);
 
+            $("#texDisplay").html("Loading...");
+
             getRecognition(inkmlString)
                 .then((responseData) => {
                     InfoService.recognitionResult = responseData;
@@ -1893,6 +1895,7 @@ function testImage(url, callback, timeout) {
 async function getRecognition(inkmlString) {
     const axios = require("axios");
     InfoService.recognitionResult = "Loading... ";
+
     try {
         let { data: postResponse } = await axios.post("http://localhost:4000/seshat", inkmlString, {
             headers: {
