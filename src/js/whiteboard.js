@@ -1978,7 +1978,10 @@ function generateStrokesArray(eraserPoints, strokesMap) {
     };
 
     return Array.from(strokesMap.values())
-        .map((stroke) => stroke.filter((coordinate) => !isErased(coordinate)))
+        .map((stroke) => {
+            let uniqueStroke = Array.from(new Set(stroke.map(JSON.stringify)), JSON.parse);
+            return uniqueStroke.filter((coordinate) => !isErased(coordinate));
+        })
         .filter((stroke) => stroke.length > 0)
         .map((stroke) => stroke.flat());
 }
