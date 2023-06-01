@@ -833,6 +833,12 @@ const whiteboard = {
         _this.ctx.stroke();
         _this.ctx.closePath();
         _this.ctx.globalCompositeOperation = _this.oldGCO;
+
+        // Timeout to prevent too many calls
+        _this.timeoutId = setTimeout(() => {
+            _this.calculateStrokesArray();
+            _this.refreshRecognition();
+        }, SESHAT_TIMEOUT);
     },
     drawRec: function (fromX, fromY, toX, toY, color, thickness, remote) {
         var _this = this;
@@ -1356,49 +1362,66 @@ const whiteboard = {
         let _this = this;
         _this.strokesArray = [];
 
-        // If drawBuffer is empty, show empty in result and skip this whole function
+        const calculateDistance = function (point1, point2) {
+            const [x1, y1] = point1.split(",").map(Number);
+            const [x2, y2] = point2.split(",").map(Number);
+            return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+        };
+
         if (_this.drawBuffer.length !== 0) {
             console.log("DRAWBUFFER: ", _this.drawBuffer);
 
-            let tempDrawId = _this.drawBuffer[0]["drawId"];
-            let tempSet = new Set();
-            let tempArray = [];
+            let eraserPoints = [];
+            let strokesMap = new Map();
 
             _this.drawBuffer.forEach((element) => {
                 let arrayStrokes = element["d"];
-                if (tempDrawId !== element["drawId"]) {
-                    // New stroke
-                    tempSet.forEach((coordinates) => {
-                        const numbers = coordinates.split(",").map(Number);
-                        tempArray.push(...numbers);
-                    });
+                let coordinateSet = new Set();
+                for (let index = 0; index < arrayStrokes.length; index += 2) {
+                    const x = arrayStrokes[index];
+                    const y = arrayStrokes[index + 1];
+                    const coordinate = [x, y].join(",");
+                    coordinateSet.add(coordinate);
+                }
 
-                    _this.strokesArray.push(tempArray);
-
-                    tempSet = new Set();
-                    tempArray = [];
-                    tempDrawId = element["drawId"];
-
+                if (element["t"] === "eraser") {
                     for (let index = 0; index < arrayStrokes.length; index += 2) {
                         const x = arrayStrokes[index];
                         const y = arrayStrokes[index + 1];
-                        tempSet.add([x, y].join(","));
+                        const coordinate = [x, y].join(",");
+                        eraserPoints.push({ coordinate, thickness: element["th"] });
                     }
                 } else {
-                    for (let index = 0; index < arrayStrokes.length; index += 2) {
-                        const x = arrayStrokes[index];
-                        const y = arrayStrokes[index + 1];
-                        tempSet.add([x, y].join(","));
+                    if (strokesMap.has(element["drawId"])) {
+                        let existingSet = strokesMap.get(element["drawId"]);
+                        coordinateSet.forEach((coordinate) => existingSet.add(coordinate));
+                    } else {
+                        strokesMap.set(element["drawId"], coordinateSet);
                     }
                 }
             });
 
-            tempSet.forEach((coordinates) => {
-                const numbers = coordinates.split(",").map(Number);
-                tempArray.push(...numbers);
-            });
+            strokesMap.forEach((coordinateSet, drawId) => {
+                let tempArray = [];
+                eraserPoints.forEach((eraserPoint) => {
+                    coordinateSet.forEach((coordinate) => {
+                        if (
+                            calculateDistance(coordinate, eraserPoint.coordinate) <=
+                            eraserPoint.thickness
+                        ) {
+                            coordinateSet.delete(coordinate);
+                        }
+                    });
+                });
+                coordinateSet.forEach((coordinate) => {
+                    const numbers = coordinate.split(",").map(Number);
+                    tempArray.push(...numbers);
+                });
 
-            _this.strokesArray.push(tempArray);
+                if (tempArray.length > 0) {
+                    _this.strokesArray.push(tempArray);
+                }
+            });
 
             console.log("STROKESARRAY: ", _this.strokesArray);
         }
